@@ -27,8 +27,6 @@ WindowContext *windowInit() {
     return &window;
 }
 
-
-
 WindowContext *windowGet() {
     return &window;
 }
