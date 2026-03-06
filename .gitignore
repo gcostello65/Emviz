@@ -21,3 +21,11 @@ compile_commands.json
 
 # macOS
 .DS_Store
+
+#libs
+dawn/*
+glfw3webgpu/*
+glfw/*
+
+#AI
+docs/*
