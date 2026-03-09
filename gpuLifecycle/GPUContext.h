@@ -8,6 +8,8 @@ struct GPUContext {
     WGPUDevice device;
     WGPUQueue queue;
     WGPUSurface surface;
+    WGPUTextureFormat surfaceFormat;
+    WGPURenderPipeline pipeline;
     bool valid;
 };
 

@@ -13,6 +13,8 @@ WindowContext *windowInit() {
         return &window;
     }
 
+    // WebGPU uses the platform's native surface, not an OpenGL context.
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     window.window = glfwCreateWindow(RESOLUTION_WIDTH, RESOLUTION_HEIGHT, WINDOW_NAME, nullptr, nullptr);
 
 
@@ -23,6 +25,7 @@ WindowContext *windowInit() {
     };
 
     window.valid = true;
+    glfwShowWindow(window.window);
 
     return &window;
 }

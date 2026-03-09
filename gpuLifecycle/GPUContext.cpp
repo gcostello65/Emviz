@@ -4,6 +4,7 @@
 
 #include "GPUContext.h"
 #include "../windowLifecycle/WindowContext.h"
+#include "../rendering/PipelineFactory.h"
 #include <iostream>
 #include <cassert>
 #include <glfw3webgpu.h>
@@ -18,7 +19,7 @@ void gpuShutdown() {
     wgpuQueueRelease(gpuContext.queue);
     wgpuSurfaceUnconfigure(gpuContext.surface);
     wgpuSurfaceRelease(gpuContext.surface);
-
+    wgpuRenderPipelineRelease(gpuContext.pipeline);
 }
 
 GPUContext* gpuGet() {
@@ -349,6 +350,9 @@ void configureSurface() {
     config.viewFormatCount = 0;
     config.viewFormats = nullptr;
 
+    //TODO: Make sure this is more configurable. This is where I am setting the format since it used elsewhere
+    gpuContext.surfaceFormat = caps.formats[0];
+
     wgpuSurfaceConfigure(gpuContext.surface, &config);
 }
 
@@ -375,6 +379,13 @@ void getNextSurfaceViewData(WGPUSurfaceTexture* surfaceTexture, WGPUTextureView*
     *textureView = wgpuTextureCreateView(surfaceTexture->texture, &viewDescriptor);
 
     wgpuTextureRelease(surfaceTexture->texture);
+}
+
+void deviceErrorCallback(
+        WGPULoggingType type,
+        WGPUStringView message
+) {
+    printf("WebGPU error (%d): %s\n", type, message.data);
 }
 
 GPUContext* gpuInit() {
@@ -414,10 +425,15 @@ GPUContext* gpuInit() {
     showLimits(gpuContext.adapter);
 
     gpuContext.device = requestDevice(gpuContext.adapter);
+    WGPULoggingCallbackInfo loggingCallbackInfo = {};
+    loggingCallbackInfo.callback = reinterpret_cast<WGPULoggingCallback>(deviceErrorCallback);
+    wgpuDeviceSetLoggingCallback(gpuContext.device, loggingCallbackInfo);
     inspectDevice(gpuContext.device);
 
     configureSurface();
     initQueue();
+
+    gpuContext.pipeline = getPipeline(gpuContext.device, &gpuContext);
 
     return &gpuContext;
 }

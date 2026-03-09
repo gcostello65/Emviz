@@ -15,49 +15,88 @@
 //// If using emscripten
 //#define WEBGPU_BACKEND_EMSCRIPTEN
 
+void mainLoop(GPUContext *gpuContext) {
+
+    WGPUSurfaceTexture surfaceTexture = {};
+    WGPUTextureView textureView = nullptr;
+
+    getNextSurfaceViewData(&surfaceTexture, &textureView);
+
+    if (!textureView) {
+        glfwPollEvents();
+        return;
+    }
+
+    // Create a command encoder for the draw call
+    WGPUCommandEncoderDescriptor encoderDesc = {};
+    encoderDesc.nextInChain = nullptr;
+    encoderDesc.label = {"My command encoder"};
+    WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(gpuContext->device, &encoderDesc);
+
+    // Create the render pass that clears the screen with our color
+    WGPURenderPassDescriptor renderPassDesc = {};
+    renderPassDesc.nextInChain = nullptr;
+
+    // The attachment part of the render pass descriptor describes the target texture of the pass
+    WGPURenderPassColorAttachment renderPassColorAttachment = {};
+    renderPassColorAttachment.view = textureView;
+    renderPassColorAttachment.resolveTarget = nullptr;
+    renderPassColorAttachment.loadOp = WGPULoadOp_Clear;
+    renderPassColorAttachment.storeOp = WGPUStoreOp_Store;
+    renderPassColorAttachment.clearValue = WGPUColor{ 0.9, 0.1, 0.2, 1.0 };
+#ifndef WEBGPU_BACKEND_WGPU
+    renderPassColorAttachment.depthSlice = WGPU_DEPTH_SLICE_UNDEFINED;
+#endif // NOT WEBGPU_BACKEND_WGPU
+
+    renderPassDesc.colorAttachmentCount = 1;
+    renderPassDesc.colorAttachments = &renderPassColorAttachment;
+    renderPassDesc.depthStencilAttachment = nullptr;
+    renderPassDesc.timestampWrites = nullptr;
+
+    WGPURenderPassEncoder renderPass = wgpuCommandEncoderBeginRenderPass(encoder, &renderPassDesc);
+
+    // Select which render pipeline to use
+    wgpuRenderPassEncoderSetPipeline(renderPass, gpuContext->pipeline);
+    // Draw 1 instance of a 3-vertices shape
+    wgpuRenderPassEncoderDraw(renderPass, 3, 1, 0, 0);
+
+    wgpuRenderPassEncoderEnd(renderPass);
+    wgpuRenderPassEncoderRelease(renderPass);
+
+    // Encode and submit the render pass
+    WGPUCommandBufferDescriptor cmdBufferDescriptor = {};
+    cmdBufferDescriptor.nextInChain = nullptr;
+    cmdBufferDescriptor.label = {"Command buffer"};
+    WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, &cmdBufferDescriptor);
+    wgpuCommandEncoderRelease(encoder);
+
+    std::cout << "Submitting command..." << std::endl;
+    wgpuQueueSubmit(gpuContext->queue, 1, &command);
+    wgpuCommandBufferRelease(command);
+    std::cout << "Command submitted." << std::endl;
+
+    // At the enc of the frame
+    wgpuTextureViewRelease(textureView);
+#ifndef __EMSCRIPTEN__
+    wgpuSurfacePresent(gpuContext->surface);
+#endif
+
+    glfwPollEvents();
+
+#if defined(WEBGPU_BACKEND_DAWN)
+    wgpuDeviceTick(gpuContext->device);
+#elif defined(WEBGPU_BACKEND_WGPU)
+    wgpuDevicePoll(device, false, nullptr);
+#endif
+}
+
+
 int main() {
     WindowContext *window = windowInit();
     GPUContext *gpuContext = gpuInit();
-    float green = 0.0;
 
     while (!glfwWindowShouldClose(window->window)) {
-        WGPUSurfaceTexture surfaceTexture = {};
-        WGPUTextureView textureView = nullptr;
-
-        getNextSurfaceViewData(&surfaceTexture, &textureView);
-
-        if (!textureView) {
-            glfwPollEvents();
-            continue;
-        }
-
-        WGPUCommandEncoder encoder = getEncoder();
-
-        wgpuCommandEncoderInsertDebugMarker(encoder, {"Do one thing", 12});
-        wgpuCommandEncoderInsertDebugMarker(encoder, {"Do another thing", 16});
-
-        WGPURenderPassEncoder renderPass = getRenderPass(&encoder, textureView, green);
-        if (green < 1.0) green = (float)green + 1.0/1000;
-        wgpuRenderPassEncoderEnd(renderPass);
-        wgpuRenderPassEncoderRelease(renderPass);
-
-        WGPUCommandBufferDescriptor cmdBufferDescriptor = {};
-        cmdBufferDescriptor.nextInChain = nullptr;
-        cmdBufferDescriptor.label = {"Command buffer", 14};
-
-        WGPUCommandBuffer command = wgpuCommandEncoderFinish(encoder, &cmdBufferDescriptor);
-        wgpuCommandEncoderRelease(encoder);
-
-        std::cout << "Submitting command..." << std::endl;
-        wgpuQueueSubmit(gpuContext->queue, 1, &command);
-        wgpuCommandBufferRelease(command);
-        std::cout << "Command submitted." << std::endl;
-
-        wgpuSurfacePresent(gpuContext->surface);
-
-        wgpuTextureViewRelease(textureView);
-
-        glfwPollEvents();
+        mainLoop(gpuContext);
     }
 
     return 0;

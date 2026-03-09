@@ -14,7 +14,10 @@ add_subdirectory(dawn)
 
 add_executable(em_sim main.cpp
         gpuLifecycle/GPUContext.cpp
-        windowLifecycle/WindowContext.cpp)
+        windowLifecycle/WindowContext.cpp
+        rendering/PipelineFactory.cpp
+        rendering/ShaderManager.h
+        rendering/ShaderManager.cpp)
 
 #if (EMSCRIPTEN)
 #
