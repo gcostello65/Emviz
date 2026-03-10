@@ -17,7 +17,9 @@ add_executable(em_sim main.cpp
         windowLifecycle/WindowContext.cpp
         rendering/PipelineFactory.cpp
         rendering/ShaderManager.h
-        rendering/ShaderManager.cpp)
+        rendering/ShaderManager.cpp
+        resourceManagement/BufferManager.cpp
+        resourceManagement/BufferManager.h)
 
 #if (EMSCRIPTEN)
 #

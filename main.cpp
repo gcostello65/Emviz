@@ -4,6 +4,7 @@
 #include <vector>
 #include "gpuLifecycle/GPUContext.h"
 #include "windowLifecycle/WindowContext.h"
+#include "resourceManagement/BufferManager.h"
 
 #ifdef __EMSCRIPTEN__
 #  include <emscripten.h>
@@ -15,7 +16,90 @@
 //// If using emscripten
 //#define WEBGPU_BACKEND_EMSCRIPTEN
 
+// We define a function that hides implementation-specific variants of device polling:
+void wgpuPollEvents([[maybe_unused]] WGPUDevice device, [[maybe_unused]] bool yieldToWebBrowser) {
+#if defined(WEBGPU_BACKEND_DAWN)
+    wgpuDeviceTick(device);
+#elif defined(WEBGPU_BACKEND_WGPU)
+    wgpuDevicePoll(device, false, nullptr);
+#elif defined(WEBGPU_BACKEND_EMSCRIPTEN)
+    if (yieldToWebBrowser) {
+        emscripten_sleep(100);
+    }
+#endif
+}
+
 void mainLoop(GPUContext *gpuContext) {
+
+
+    // Playing with buffers in the tutorial
+    WGPUBufferDescriptor bufferDesc = {};
+    populateBufferDesc(&bufferDesc, {"Some GPU-side data buffer"},
+                       WGPUBufferUsage_CopyDst | WGPUBufferUsage_CopySrc, 16);
+
+    WGPUBuffer buffer1 = createBuffer(&gpuContext->device, &bufferDesc);
+
+    bufferDesc.label = {"Output buffer"};
+    bufferDesc.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_MapRead;
+
+    WGPUBuffer buffer2 = createBuffer(&gpuContext->device, &bufferDesc);
+
+// Create some CPU-side data buffer (of size 16 bytes)
+    std::vector<uint8_t> numbers(16);
+    for (uint8_t i = 0; i < 16; ++i) numbers[i] = i;
+// `numbers` now contains [ 0, 1, 2, ... ]
+
+// Copy this from `numbers` (RAM) to `buffer1` (VRAM)
+    wgpuQueueWriteBuffer(gpuContext->queue, buffer1, 0, numbers.data(), numbers.size());
+
+
+    // The context shared between this main function and the callback.
+    struct Context {
+        bool ready;
+        WGPUBuffer buffer;
+    };
+
+    auto onBuffer2Mapped = [](WGPUMapAsyncStatus status, WGPUStringView message, void* pUserData, void* /* pUserData */) {
+        auto* context = reinterpret_cast<Context*>(pUserData);
+        context->ready = true;
+        std::cout << "Buffer 2 mapped with status " << status << std::endl;
+        if (status != WGPUMapAsyncStatus_Success) return;
+
+        // Get a pointer to wherever the driver mapped the GPU memory to the RAM
+        auto* bufferData = (uint8_t*)wgpuBufferGetConstMappedRange(context->buffer, 0, 16);
+
+        std::cout << "bufferData = [";
+        for (int i = 0; i < 16; ++i) {
+            if (i > 0) std::cout << ", ";
+            std::cout << (int)bufferData[i];
+        }
+        std::cout << "]" << std::endl;
+
+        // Then do not forget to unmap the memory
+        wgpuBufferUnmap(context->buffer);
+    };
+
+    // Create the Context instance
+    Context context = { false, buffer2 };
+
+    WGPUBufferMapCallbackInfo callbackInfo {};
+    callbackInfo.callback = onBuffer2Mapped;
+    callbackInfo.mode = WGPUCallbackMode_AllowProcessEvents;
+    callbackInfo.nextInChain = nullptr;
+    callbackInfo.userdata1 = (void*)&context;
+
+    wgpuBufferMapAsync(buffer2, WGPUMapMode_Read, 0, 16, callbackInfo);
+
+    // TODO: Make sure to clean up all these objects above and below. This should be easy to do with codex. Make sure it is an extensible too.
+
+
+    //{{Define callback and start mapping buffer}}
+
+    while (!context.ready) {
+        wgpuPollEvents(gpuContext->device, true /* yieldToBrowser */);
+    }
+
+    // Surface operations
 
     WGPUSurfaceTexture surfaceTexture = {};
     WGPUTextureView textureView = nullptr;
@@ -32,6 +116,9 @@ void mainLoop(GPUContext *gpuContext) {
     encoderDesc.nextInChain = nullptr;
     encoderDesc.label = {"My command encoder"};
     WGPUCommandEncoder encoder = wgpuDeviceCreateCommandEncoder(gpuContext->device, &encoderDesc);
+
+    // After creating the command encoder
+    wgpuCommandEncoderCopyBufferToBuffer(encoder, buffer1, 0, buffer2, 0, 16);
 
     // Create the render pass that clears the screen with our color
     WGPURenderPassDescriptor renderPassDesc = {};
@@ -74,6 +161,10 @@ void mainLoop(GPUContext *gpuContext) {
     wgpuQueueSubmit(gpuContext->queue, 1, &command);
     wgpuCommandBufferRelease(command);
     std::cout << "Command submitted." << std::endl;
+
+    // In Terminate()
+    wgpuBufferRelease(buffer1);
+    wgpuBufferRelease(buffer2);
 
     // At the enc of the frame
     wgpuTextureViewRelease(textureView);
