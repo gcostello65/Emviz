@@ -13,6 +13,8 @@ set(CMAKE_CXX_STANDARD 20)
 add_subdirectory(dawn)
 
 add_executable(em_sim main.cpp
+        app/Application.cpp
+        app/Application.h
         gpuLifecycle/GPUContext.cpp
         windowLifecycle/WindowContext.cpp
         rendering/PipelineFactory.cpp

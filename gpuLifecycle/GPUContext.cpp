@@ -381,11 +381,12 @@ void getNextSurfaceViewData(WGPUSurfaceTexture* surfaceTexture, WGPUTextureView*
     wgpuTextureRelease(surfaceTexture->texture);
 }
 
-void deviceErrorCallback(
+void deviceLoggingCallback(
         WGPULoggingType type,
-        WGPUStringView message
-) {
-    printf("WebGPU error (%d): %s\n", type, message.data);
+        WGPUStringView message,
+        void* /*userdata1*/,
+        void* /*userdata2*/) {
+    printf("WebGPU log (%d): %.*s\n", type, (int)message.length, message.data ? message.data : "");
 }
 
 GPUContext* gpuInit() {
@@ -426,7 +427,10 @@ GPUContext* gpuInit() {
 
     gpuContext.device = requestDevice(gpuContext.adapter);
     WGPULoggingCallbackInfo loggingCallbackInfo = {};
-    loggingCallbackInfo.callback = reinterpret_cast<WGPULoggingCallback>(deviceErrorCallback);
+    loggingCallbackInfo.nextInChain = nullptr;
+    loggingCallbackInfo.callback = deviceLoggingCallback;
+    loggingCallbackInfo.userdata1 = nullptr;
+    loggingCallbackInfo.userdata2 = nullptr;
     wgpuDeviceSetLoggingCallback(gpuContext.device, loggingCallbackInfo);
     inspectDevice(gpuContext.device);
 
