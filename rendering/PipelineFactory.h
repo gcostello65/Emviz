@@ -7,9 +7,10 @@
 #include "dawn/webgpu.h"
 #include "ShaderManager.h"
 #include "../gpuLifecycle/GPUContext.h"
+#include "../resourceManagement/BufferManager.h"
+#include "../resourceManagement/VertexManager.h"
 
-WGPURenderPipeline getPipeline(WGPUDevice device, GPUContext *gpuContext);
-static void setVertexBuffer(WGPURenderPipelineDescriptor *pipelineDesc);
+WGPURenderPipeline getPipeline(WGPUDevice device, GPUContext *gpuContext, VertexContainer *vertexContainer);
 static void setVertexShader(WGPURenderPipelineDescriptor *pipelineDesc, WGPUShaderModule *shaderModule);
 static void setPrimitive(WGPURenderPipelineDescriptor *pipelineDesc);
 static void setFragmentShader(WGPURenderPipelineDescriptor *pipelineDesc, WGPUFragmentState *fragmentState);

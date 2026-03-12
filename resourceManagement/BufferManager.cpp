@@ -4,7 +4,7 @@
 
 #include "BufferManager.h"
 
-void populateBufferDesc(WGPUBufferDescriptor *bufferDesc, WGPUStringView label, WGPUBufferUsage usage, uint32_t size) {
+void populateBufferDesc(WGPUBufferDescriptor *bufferDesc, WGPUStringView label, WGPUBufferUsage usage, uint64_t size) {
     bufferDesc->nextInChain = nullptr;
     bufferDesc->label = label;
     bufferDesc->usage = usage;

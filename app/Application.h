@@ -21,14 +21,20 @@ typedef struct AppLoopStepEntry {
     void* userdata;
 } AppLoopStepEntry;
 
+typedef struct AppDebugReadbackConfig {
+    bool enabled;
+    bool printMappedBytes;
+    uint64_t bufferSize;
+    uint64_t warningFrameThreshold;
+    WGPUStringView uploadBufferLabel;
+    WGPUStringView readbackBufferLabel;
+} AppDebugReadbackConfig;
+
 typedef struct AppConfig {
     WGPUColor clearColor;
-    uint64_t stagingBufferSize;
-    uint64_t readbackWarningFrameThreshold;
     WGPUStringView encoderLabel;
     WGPUStringView commandBufferLabel;
-    WGPUStringView stagingBufferLabel;
-    WGPUStringView readbackBufferLabel;
+    AppDebugReadbackConfig debugReadback;
 } AppConfig;
 
 typedef struct AppState {
@@ -36,11 +42,15 @@ typedef struct AppState {
     GPUContext* gpu;
     AppConfig config;
 
-    AppLoopStepEntry loopSteps[APP_MAX_LOOP_STEPS];
-    uint32_t loopStepCount;
+    AppLoopStepEntry preRenderSteps[APP_MAX_LOOP_STEPS];
+    uint32_t preRenderStepCount;
+    AppLoopStepEntry renderSteps[APP_MAX_LOOP_STEPS];
+    uint32_t renderStepCount;
+    AppLoopStepEntry postRenderSteps[APP_MAX_LOOP_STEPS];
+    uint32_t postRenderStepCount;
 
-    WGPUBuffer uploadBuffer;
-    WGPUBuffer readbackBuffer;
+    WGPUBuffer debugUploadBuffer;
+    WGPUBuffer debugReadbackBuffer;
 
     bool readbackRequested;
     bool readbackCompleted;
@@ -53,4 +63,8 @@ bool appInit(AppState* app, const AppConfig* config);
 void appRun(AppState* app);
 void appShutdown(AppState* app);
 bool appRunFrame(AppState* app);
-bool appAddLoopStep(AppState* app, AppLoopStepFn fn, void* userdata);
+bool appAddPreRenderStep(AppState* app, AppLoopStepFn fn, void* userdata);
+bool appAddRenderStep(AppState* app, AppLoopStepFn fn, void* userdata);
+bool appAddPostRenderStep(AppState* app, AppLoopStepFn fn, void* userdata);
+WGPULimits getRequiredLimits(WGPUAdapter adapter);
+void setDefault(WGPULimits &limits);

@@ -21,7 +21,8 @@ add_executable(em_sim main.cpp
         rendering/ShaderManager.h
         rendering/ShaderManager.cpp
         resourceManagement/BufferManager.cpp
-        resourceManagement/BufferManager.h)
+        resourceManagement/BufferManager.h
+        resourceManagement/VertexManager.cpp)
 
 #if (EMSCRIPTEN)
 #

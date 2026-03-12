@@ -8,18 +8,31 @@ WGPUShaderModule getShaderModule(WGPUDevice *device) {
     WGPUShaderModuleDescriptor shaderDesc{};
     const char* shaderSource = R"(
         @vertex
-        fn vs_main(@builtin(vertex_index) vi : u32) -> @builtin(position) vec4f {
-            var pos = array<vec2f, 3>(
-                vec2f(0.0, 0.5),
-                vec2f(-0.5, -0.5),
-                vec2f(0.5, -0.5)
-            );
-            return vec4f(pos[vi], 0.0, 1.0);
+
+        /**
+         * A structure with fields labeled with builtins and locations can also be used
+         * as *output* of the vertex shader, which is also the input of the fragment
+         * shader.
+         */
+        struct VertexOutput {
+            @builtin(position) position: vec4f,
+            // The location here does not refer to a vertex attribute, it just means
+            // that this field must be handled by the rasterizer.
+            // (It can also refer to another field of another struct that would be used
+            // as input to the fragment shader.)
+            @location(0) color: vec3f,
+        };
+
+        fn vs_main(in: VertexInput) -> VertexOutput {
+           var out: VertexOutput; // create the output struct
+            out.position = vec4f(in.position, 0.0, 1.0); // same as what we used to directly return
+            out.color = in.color; // forward the color attribute to the fragment shader
+            return out;
         }
 
         @fragment
-        fn fs_main() -> @location(0) vec4f {
-            return vec4f(0.0, 0.4, 1.0, 1.0);
+        fn fs_main(in: VertexOutput) -> @location(0) vec4f {
+            return vec4f(in.color, 1.0); // use the interpolated color coming from the vertex shader
         }
         )";
 

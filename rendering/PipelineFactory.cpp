@@ -5,12 +5,36 @@
 #include "PipelineFactory.h"
 
 
-WGPURenderPipeline getPipeline(WGPUDevice device, GPUContext *gpuContext) {
+WGPURenderPipeline getPipeline(WGPUDevice device, GPUContext *gpuContext, VertexContainer *vertexContainer) {
     WGPURenderPipelineDescriptor pipelineDesc{};
     pipelineDesc.nextInChain = nullptr;
 
     // Vertex Buffers and shader
-    setVertexBuffer(&pipelineDesc);
+    // Vertex buffer data
+    // There are 2 floats per vertex, one for x and one for y.
+    // But in the end this is just a bunch of floats to the eyes of the GPU,
+    // the *layout* will tell how to interpret this.
+    Vertex vertexData[] = {
+            // x0,  y0,  r0,  g0,  b0
+            -0.5, -0.5, 1.0, 0.0, 0.0,
+
+            // x1,  y1,  r1,  g1,  b1
+            +0.5, -0.5, 0.0, 1.0, 0.0,
+
+            // ...
+            +0.0,   +0.5, 0.0, 0.0, 1.0,
+            -0.55f, -0.5, 1.0, 1.0, 0.0,
+            -0.05f, +0.5, 1.0, 0.0, 1.0,
+            -0.55f, +0.5, 0.0, 1.0, 1.0
+    };
+
+    setAndReturnVertexBuffer(
+            &pipelineDesc,
+            vertexData,
+            sizeof(vertexData) / sizeof(Vertex),
+            gpuContext,
+            vertexContainer);
+    gpuContext->vertexContainer = *vertexContainer;
 
     WGPUShaderModule shaderModule = getShaderModule(&device);
     setVertexShader(&pipelineDesc, &shaderModule/*shaderModule=*/);
@@ -38,12 +62,6 @@ WGPURenderPipeline getPipeline(WGPUDevice device, GPUContext *gpuContext) {
     WGPURenderPipeline pipeline = wgpuDeviceCreateRenderPipeline(device, &pipelineDesc);
     wgpuShaderModuleRelease(shaderModule);
     return pipeline;
-}
-
-void setVertexBuffer(WGPURenderPipelineDescriptor *pipelineDesc) {
-    // We do not use any vertex buffer for this first simplistic example
-    pipelineDesc->vertex.bufferCount = 0;
-    pipelineDesc->vertex.buffers = nullptr;
 }
 
 void setVertexShader(WGPURenderPipelineDescriptor *pipelineDesc, WGPUShaderModule *shaderModule) {

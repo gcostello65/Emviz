@@ -8,7 +8,7 @@
 #include <dawn/webgpu.h>
 
 WGPUBuffer createBuffer(WGPUDevice *device, WGPUBufferDescriptor *bufferDesc);
-void populateBufferDesc(WGPUBufferDescriptor *bufferDesc, WGPUStringView label, WGPUBufferUsage usage, uint32_t size);
+void populateBufferDesc(WGPUBufferDescriptor *bufferDesc, WGPUStringView label, WGPUBufferUsage usage, uint64_t size);
 
 
 

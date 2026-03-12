@@ -5,11 +5,13 @@
 #include "GPUContext.h"
 #include "../windowLifecycle/WindowContext.h"
 #include "../rendering/PipelineFactory.h"
+#include "../app/Application.h"
 #include <iostream>
 #include <cassert>
 #include <glfw3webgpu.h>
 
 static GPUContext gpuContext = {};
+static VertexContainer vertexContainer = {};
 
 void gpuShutdown() {
     // We clean up the WebGPU instance
@@ -158,7 +160,7 @@ void showLimits(WGPUAdapter adapter) {
         std::cout << " - maxComputeInvocationsPerWorkgroup: " << supportedLimits.maxComputeInvocationsPerWorkgroup << std::endl;
         std::cout << " - maxComputeWorkgroupsPerDimension: " << supportedLimits.maxComputeWorkgroupsPerDimension << std::endl;
         std::cout << " - maxStorageBufferBindingSize: " << supportedLimits.maxStorageBufferBindingSize << std::endl;
-
+        std::cout << " - maxVertexAttributes: " << supportedLimits.maxVertexAttributes << std::endl;
     }
 #endif // NOT __EMSCRIPTEN__
 
@@ -235,9 +237,25 @@ void inspectDevice(WGPUDevice device) {
         std::cout << " - maxTextureArrayLayers: " << supportedLimits.maxTextureArrayLayers << std::endl;
         std::cout << " - maxComputeWorkgroupSizeX: " << supportedLimits.maxComputeWorkgroupSizeX << std::endl;
         std::cout << " - maxComputeInvocationsPerWorkgroup: " << supportedLimits.maxComputeInvocationsPerWorkgroup << std::endl;
-        std::cout << " - maxComputeWorkgroupsPerDimension: " << supportedLimits.maxComputeWorkgroupsPerDimension << std::endl;
         std::cout << " - maxStorageBufferBindingSize: " << supportedLimits.maxStorageBufferBindingSize << std::endl;
+        std::cout << " - maxVertexAttributes: " << supportedLimits.maxVertexAttributes << std::endl;
     }
+}
+
+WGPULimits getRequiredLimits(WGPUAdapter adapter) {
+    // Get adapter supported limits, in case we need them
+    WGPULimits supportedLimits;
+    supportedLimits.nextInChain = nullptr;
+    wgpuAdapterGetLimits(adapter, &supportedLimits);
+
+    WGPULimits requiredLimits{};
+    setDefault(requiredLimits);
+
+    // We could set limits here but let's just leave it for now
+    requiredLimits.minUniformBufferOffsetAlignment = supportedLimits.minUniformBufferOffsetAlignment;
+    requiredLimits.minStorageBufferOffsetAlignment = supportedLimits.minStorageBufferOffsetAlignment;
+    requiredLimits.maxInterStageShaderVariables = 3;
+    return requiredLimits;
 }
 
 WGPUDevice requestDevice(WGPUAdapter adapter) {
@@ -280,6 +298,10 @@ WGPUDevice requestDevice(WGPUAdapter adapter) {
 
     deviceDesc.uncapturedErrorCallbackInfo = uncapturedErrorCallbackInfo;
 
+    // Before requestDeviceSync(adapter, &deviceDesc)
+    WGPULimits requiredLimits = getRequiredLimits(adapter);
+
+    deviceDesc.requiredLimits = &requiredLimits;
 
     WGPUDevice device = requestDeviceSync(adapter, &deviceDesc);
 
@@ -437,7 +459,7 @@ GPUContext* gpuInit() {
     configureSurface();
     initQueue();
 
-    gpuContext.pipeline = getPipeline(gpuContext.device, &gpuContext);
+    gpuContext.pipeline = getPipeline(gpuContext.device, &gpuContext, &vertexContainer);
 
     return &gpuContext;
 }
