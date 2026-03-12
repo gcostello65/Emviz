@@ -6,10 +6,18 @@
 #define EM_SIM_VERTEXMANAGER_H
 
 #include <dawn/webgpu.h>
+#include <stddef.h>
 
 struct GPUContext;
 
 #define MAX_VERTEX_ATTRIBUTES 8
+
+#define ATTRIB_T(type, location, fmt, member) \
+    {                                          \
+        .shaderLocation = (location),          \
+        .format = (fmt),                       \
+        .offset = offsetof(type, member),      \
+    }
 
 typedef struct {
     float x;
@@ -23,7 +31,7 @@ typedef struct {
     WGPUBuffer vertexBuffer;
     WGPUBufferDescriptor vertexBufferDesc;
     WGPUVertexBufferLayout vertexBufferLayout;
-    WGPUVertexAttribute *vertexAttributes;
+    WGPUVertexAttribute vertexAttributes[MAX_VERTEX_ATTRIBUTES];
     Vertex *vertexData;
     uint64_t vertexCount;
 } VertexContainer;

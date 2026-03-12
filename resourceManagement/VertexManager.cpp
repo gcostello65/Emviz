@@ -27,24 +27,14 @@ void setAndReturnVertexBuffer(WGPURenderPipelineDescriptor *pipelineDesc,
     pipelineDesc->vertex.bufferCount = 1;
 
     WGPUVertexBufferLayout vertexBufferLayout{};
-
-    uint32_t attributeCount = 2;
-
-    // == For each attribute, describe its layout, i.e., how to interpret the raw data ==
-    // Corresponds to @location(...)
-    vertexContainer->vertexAttributes[0].shaderLocation = 0;
-    // Means vec2f in the shader
-    vertexContainer->vertexAttributes[0].format = WGPUVertexFormat_Float32x2;
-    // Index of the first element
-    vertexContainer->vertexAttributes[0].offset = 0;
-
-    // == For each attribute, describe its layout, i.e., how to interpret the raw data ==
-    // Corresponds to @location(...)
-    vertexContainer->vertexAttributes[1].shaderLocation = 1;
-    // Means vec2f in the shader
-    vertexContainer->vertexAttributes[1].format = WGPUVertexFormat_Float32x3;
-    // Index of the first element
-    vertexContainer->vertexAttributes[1].offset = 2 * sizeof(float);
+    const uint32_t attributeCount = 2;
+    const WGPUVertexAttribute attributes[] = {
+            ATTRIB_T(Vertex, 0, WGPUVertexFormat_Float32x2, x),
+            ATTRIB_T(Vertex, 1, WGPUVertexFormat_Float32x3, r),
+    };
+    for (uint32_t i = 0; i < attributeCount; ++i) {
+        vertexContainer->vertexAttributes[i] = attributes[i];
+    }
 
     // == Common to attributes from the same buffer ==
     vertexBufferLayout.arrayStride = sizeof(Vertex);

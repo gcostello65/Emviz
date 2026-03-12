@@ -270,7 +270,7 @@ static void appReleaseBuffers(AppState* app) {
 
 AppConfig appDefaultConfig(void) {
     AppConfig config = {};
-    config.clearColor = (WGPUColor){0.9, 0.1, 0.2, 1.0};
+    config.clearColor = (WGPUColor){0.0, 0.0, 0.0, 1.0};
     config.encoderLabel = (WGPUStringView){"Main encoder", WGPU_STRLEN};
     config.commandBufferLabel = (WGPUStringView){"Main command buffer", WGPU_STRLEN};
     config.debugReadback.enabled = false;

@@ -7,8 +7,6 @@
 WGPUShaderModule getShaderModule(WGPUDevice *device) {
     WGPUShaderModuleDescriptor shaderDesc{};
     const char* shaderSource = R"(
-        @vertex
-
         /**
          * A structure with fields labeled with builtins and locations can also be used
          * as *output* of the vertex shader, which is also the input of the fragment
@@ -23,8 +21,14 @@ WGPUShaderModule getShaderModule(WGPUDevice *device) {
             @location(0) color: vec3f,
         };
 
+        struct VertexInput {
+            @location(0) position: vec2f,
+            @location(1) color: vec3f,
+        };
+
+        @vertex
         fn vs_main(in: VertexInput) -> VertexOutput {
-           var out: VertexOutput; // create the output struct
+            var out: VertexOutput; // create the output struct
             out.position = vec4f(in.position, 0.0, 1.0); // same as what we used to directly return
             out.color = in.color; // forward the color attribute to the fragment shader
             return out;

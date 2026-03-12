@@ -139,6 +139,6 @@ void setMultiSample(WGPURenderPipelineDescriptor *pipelineDesc) {
     pipelineDesc->multisample.count = 1;
     // Default value for the mask, meaning "all bits on"
     pipelineDesc->multisample.mask = ~0u;
-    // Default value as well (irrelevant for count = 1 anyways)
+    // Default value as well (irrelevant for count = 1 anyway)
     pipelineDesc->multisample.alphaToCoverageEnabled = false;
 }
